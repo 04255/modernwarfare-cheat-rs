@@ -71,7 +71,10 @@ fn character_names() {
 fn get_bone_pos() {
     init();
 
-    let local_player = internal::get_local_player().unwrap();
-    let bone_pos = local_player.get_bone_position(Bone::Head).unwrap();
-    assert!(units_to_m((bone_pos - local_player.origin).length()) < 5.0);
+    let players = get_players().unwrap();
+
+    for player in players {
+        let bone_pos = player.get_bone_position(Bone::Head).unwrap();
+        assert!(units_to_m((bone_pos - player.origin).length()) < 5.0);
+    }
 }

@@ -1400,6 +1400,7 @@ decrypt_bone_base(uint64_t encrypted_address, uint64_t game_base_address, uint64
 auto get_bone_index(uint64_t index, uint64_t game_base_address) -> uint64_t {
     uint64_t rax = 0, rbx = 0, rcx = 0, rdx = 0, r8 = 0, rdi = 0, r9 = 0, r10 = 0, r11 = 0, r12 = 0, r13 = 0, r14 = 0, rsi = 0, rsp = 0, rbp = 0, r15 = 0;
     const auto baseModuleAddr = game_base_address;
+    rbx = index;
 
     rcx = rbx * 0x13C8;
     rax = 0xE16108FF1793EEB9;
@@ -1453,4 +1454,69 @@ auto get_bone_index(uint64_t index, uint64_t game_base_address) -> uint64_t {
     rcx -= rax;
     r15 = read<uint16_t>(rcx + r11 * 1 + 0x5D621C0);
     return r15;
+}
+
+auto get_visible_base(int32_t index, uint64_t game_base_address, uint64_t func_distribute,
+                      uint64_t vis_function) -> uint64_t {
+    for (int j = 4000; j >= 0; --j) {
+        QWORD nIndex = (j + (j << 2)) << 0x6;
+        QWORD BaseAddress = game_base_address + func_distribute + nIndex;
+        QWORD cmpFunctionHeader = read<QWORD>(BaseAddress + 0x90);
+
+        if (!cmpFunctionHeader) {
+            continue;
+        }
+
+        auto h = cmpFunctionHeader - game_base_address;
+        if (cmpFunctionHeader == game_base_address + vis_function) {
+            QWORD ValidVisibleListBaseAddress = read<QWORD>(BaseAddress + 0x108); // Visible_ListHead
+            if (!ValidVisibleListBaseAddress)
+                continue;
+
+            QWORD rdx = ValidVisibleListBaseAddress + (index * 9 + 0x14e) * 8;
+            if (!rdx)
+                continue;
+
+            DWORD VisibleFlags = (rdx + 0x10) ^read<QWORD>(rdx + 0x14);
+            if (!VisibleFlags)
+                continue;
+
+            DWORD v511 = VisibleFlags * (VisibleFlags + 2);
+            if (!v511)
+                continue;
+
+            BYTE VisibleFlags1 = read<QWORD>(rdx + 0x10) ^v511 ^BYTE1(v511);
+
+            if (VisibleFlags1 == 3) {
+                return BaseAddress;
+            }
+        }
+    }
+
+    return 0;
+}
+
+// 0: not visible, 1: visible: 2: error
+auto is_visible(int32_t index, uint64_t last_visible_offset) -> uint32_t {
+    QWORD VisibleList = read<QWORD>(last_visible_offset + 0x108);
+    if (!VisibleList)
+        return 2;
+
+    QWORD rdx = VisibleList + (index * 9 + 0x14E) * 8;
+    if (!rdx)
+        return 2;
+
+    DWORD VisibleFlags = (rdx + 0x10) ^read<DWORD>(rdx + 0x14);
+    if (!VisibleFlags)
+        return 2;
+
+    DWORD v511 = VisibleFlags * (VisibleFlags + 2);
+    if (!v511)
+        return 2;
+
+    BYTE VisibleFlags1 = read<DWORD>(rdx + 0x10) ^v511 ^BYTE1(v511);
+    if (VisibleFlags1 == 3) {
+        return 1;
+    }
+    return 0;
 }

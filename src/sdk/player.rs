@@ -7,14 +7,16 @@ use log::*;
 use memlib::math::{Vector2, Vector3};
 use memlib::memory::{Address, dump_memory, read_memory, try_read_memory};
 
-use crate::sdk::{GameInfo, world_to_screen};
-use crate::sdk::bone::Bone;
-use crate::sdk::internal::get_name_struct;
+use crate::sdk::{GameInfo, world_to_screen, units_to_m};
+use crate::sdk::bone::{Bone, get_bone_position};
+use crate::sdk::internal::{get_name_struct, get_camera_position};
 use crate::sdk::structs::CharacterStance;
+use crate::sdk::globals;
 
 use super::bone;
 use super::offsets::character_info;
 use super::structs::Name;
+use crate::sdk::encryption::is_visible;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -27,7 +29,8 @@ pub struct Player {
     pub ads: bool,
     pub reloading: bool,
     pub base_address: Address,
-    pub bones: HashMap<Bone, Vector3> // TODO
+    pub visible: bool,
+    pub bones: HashMap<Bone, Vector3>,
 }
 
 impl Player {
@@ -55,11 +58,6 @@ impl Player {
             bail!("Dead was {}", dead);
         }
 
-        // let death: i32 = read_memory(position_address + 0xCF8);
-        // if death != 0 {
-        //     return None;
-        // }
-
         let stance: CharacterStance = read_memory(base_address + character_info::STANCE);
         // let stance = CharacterStance::Standing;
         let team: i32 = read_memory(base_address + character_info::TEAM);
@@ -70,6 +68,48 @@ impl Player {
         if name_struct.health <= 0 {
             bail!("Invalidated player because health was {}", name_struct.health);
         }
+        let name = name_struct.get_name();
+        let health = name_struct.health;
+
+        // TODO: Cache?
+        let mut all_bones: Vec<_> = super::bone::BONE_CONNECTIONS.iter()
+            .flat_map(|(a, b)| std::array::IntoIter::new([a, b]).collect::<Vec<_>>())
+            .collect();
+        all_bones.dedup();
+
+        let mut bones = HashMap::new();
+
+        // FIXME
+        if world_to_screen(&origin).is_some() {
+            for bone in all_bones {
+                let pos = get_bone_position(index, *bone as _);
+                match pos {
+                    Ok(pos) => {
+                        let distance = units_to_m((origin - pos).length());
+                        if distance > 5.0 {
+                            debug!("bone {:?} position for {} was {}m away", bone, name, distance);
+                            continue;
+                        }
+                        bones.insert(*bone, pos);
+                    },
+                    Err(e) => {
+                        trace!("Error getting bone {:?} position for {}: {}", bone, name, e);
+                    }
+                }
+            }
+        }
+        trace!("Found {} bone positions for {}", bones.len(), name);
+        // if name == "draven" {
+        //     let cam = get_camera_position().unwrap();
+        //     if let Some(head) = bones.get(&Bone::Head) {
+        //         dbg!(cam - head);
+        //     }
+        // }
+
+        // let visible = is_visible(index, globals::VISIBLE_BASE.get().unwrap()).unwrap_or_else(|e| {
+        //     error!("Error calling visible for index {}: {:?}", index, e);
+        //     false
+        // });
 
         trace!("Creating new player with character_id {}", index);
 
@@ -77,23 +117,21 @@ impl Player {
             origin,
             id: index,
             team,
-            name: name_struct.get_name(),
+            name,
             stance,
-            // ads: char_info.ads == 1,
-            // stance: CharacterStance::STANDING,
-            // ads: ads == 1,
             ads,
             reloading,
-            health: name_struct.health,
+            health,
             base_address,
-            bones: HashMap::new()
+            visible: true,
+            bones,
         })
     }
 
     pub fn is_teammate(&self, game_info: &GameInfo, friends: &[String]) -> bool {
         for friend in friends {
             if self.name.to_lowercase().contains(&friend.to_lowercase()) {
-                return true
+                return true;
             }
         }
 
@@ -123,10 +161,11 @@ impl Player {
     /// Gets the bounding box of the player from bottom left to top right
     /// Returns None if world_to_screen fails
     pub fn get_bounding_box(&self) -> Option<(Vector2, Vector2)> {
-        match self.get_bounding_box_bones() {
-            Some(val) => Some(val),
-            None => self.get_bounding_box_fallback()
-        }
+        self.get_bounding_box_fallback()
+        // match self.get_bounding_box_bones() {
+        //     Some(val) => Some(val),
+        //     None => self.get_bounding_box_fallback()
+        // }
     }
 
     /// Gets the player bounding box using bone locations

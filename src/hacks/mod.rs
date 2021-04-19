@@ -4,7 +4,7 @@ use anyhow::*;
 
 use memlib::util::{LoopTimer, GlobalCell, InitCell};
 use memlib::memory::{read_memory, Address, write_memory};
-use memlib::math::{Angles2, Vector2};
+use memlib::math::{Angles2, Vector2, Vector3};
 use memlib::overlay::{Color, TextStyle, Font, Draw, TextOptions};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, channel};
@@ -19,6 +19,7 @@ use std::time::{Instant, Duration};
 use imgui_ext::UiExt;
 use crate::sdk::globals::update_addresses_interval;
 use std::borrow::BorrowMut;
+use std::collections::{HashMap, VecDeque};
 
 pub mod aimbot;
 pub mod closest_player;
@@ -30,7 +31,7 @@ pub static STATE: InitCell<CheatState> = InitCell::new();
 
 #[derive(Clone, Default)]
 pub struct CheatState {
-    pub aimbot_context: AimbotContext
+    pub aimbot_context: AimbotContext,
 }
 
 /// The main loop of the cheat
@@ -73,7 +74,20 @@ fn hack_loop() {
         let config = CONFIG.get_ref();
         let mut state = STATE.get_mut();
 
+        update_location_history(Instant::now(), config.seconds_pred_history, &game_info, &mut state.aimbot_context.location_history);
+
         aimbot::aimbot(&config, &game_info, &mut state.aimbot_context);
+    }
+}
+
+fn update_location_history(update_time: Instant, max_history: f32, game_info: &GameInfo, history: &mut HashMap<i32, VecDeque<(Instant, Vector3)>>) {
+    for player in &game_info.players {
+        let entry = history.entry(player.id).or_insert_with(VecDeque::new);
+        entry.push_back((update_time, player.origin));
+        // Remove old entries
+        while (update_time - entry.get(0).unwrap().0).as_secs_f32() > max_history {
+            entry.pop_front();
+        }
     }
 }
 

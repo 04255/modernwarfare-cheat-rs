@@ -6,8 +6,13 @@ use crate::sdk::bone::Bone;
 use crate::sdk::CharacterStance;
 use serde::{Serialize, Deserialize};
 use memlib::math::Vector3;
+use std::collections::{HashMap, VecDeque};
+use std::time::Instant;
+use memlib::hacks::prediction::{run_prediction, run_bullet_drop, Target, Projectile};
+use std::rc::Rc;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, imgui_ext::Gui)]
+#[serde(tag = "aimbot")]
 pub struct AimbotConfig {
     #[imgui(checkbox(label = "Aimbot enabled"))]
     pub enabled: bool,
@@ -50,9 +55,17 @@ impl AimbotConfig {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct AimbotContext {
-    pub aim_lock_player_id: Option<i32> // The target ID we are aimlocking to
+    pub aim_lock_player_id: Option<i32>, // The target ID we are aimlocking to
+    pub location_history: HashMap<i32, VecDeque<(Instant, Vector3)>>,
+    pub mouse_accum: (f32, f32)
+}
+
+impl Default for AimbotContext {
+    fn default() -> Self {
+        Self{aim_lock_player_id: None, location_history: HashMap::new(), mouse_accum: (0.0, 0.0)}
+    }
 }
 
 pub fn aimbot(global_config: &Config, game_info: &GameInfo, ctx: &mut AimbotContext) {
@@ -92,14 +105,25 @@ pub fn aimbot(global_config: &Config, game_info: &GameInfo, ctx: &mut AimbotCont
 
     ctx.aim_lock_player_id = Some(player.id);
 
+
     // Aim at target
-    aim_at(&game_info, &player, &target, &config);
+    aim_at(&game_info, &player, &target, &config, ctx);
 }
 
 /// Gets the position to aim at given a player.
 /// This is where prediction should be implemented
 fn get_aim_position(player: &Player, game_info: &GameInfo, ctx: &AimbotContext) -> Vector3 {
-    player.estimate_head_position()
+    let target = Target::from_location_history(&player.origin, &ctx.location_history.get(&player.id).unwrap());
+
+    let projectile = Projectile{velocity: 40000.0, gravity: m_to_units(9.8), source_pos: game_info.camera_pos};
+    // let projectile = Projectile{velocity: 4000.0, gravity: m_to_units(9.8), source_pos: game_info.camera_pos};
+
+    let pred_pos = run_prediction(&target, &projectile);
+    let pred_pos = run_bullet_drop(&pred_pos, &projectile);
+
+    let pred_delta = pred_pos - player.origin;
+
+    player.get_head_position() + pred_delta
 }
 
 /// Returns the target player and the position to aim at
@@ -143,15 +167,15 @@ fn get_target<'a>(game_info: &'a GameInfo, config: &AimbotConfig, ctx: &AimbotCo
 
         Some((player, aim_position, angle, distance))
     })
-        .min_by_key(|(player, aim_position, angle, distance)| {
+        .min_by_key(|(_, _, angle, distance)| {
             // Combine fov and distance
             (angle + (distance / 100.0) * angle) as i32
         })
-        .map(|(player, aim_position, angle, distance)| (player, aim_position))
+        .map(|(player, aim_position, _, _)| (player, aim_position))
 }
 
 /// Aims at `target`
-fn aim_at(game_info: &GameInfo, player: &Player, target: &Vector3, config: &AimbotConfig) {
+fn aim_at(game_info: &GameInfo, player: &Player, target: &Vector3, config: &AimbotConfig, ctx: &mut AimbotContext) {
     let absolute_delta = math::calculate_relative_angles(&game_info.camera_pos, &target, &game_info.local_view_angles);
 
     info!("Aiming at {}\t({}m)\t({}°)\t({})\t({:?})",
@@ -167,17 +191,32 @@ fn aim_at(game_info: &GameInfo, player: &Player, target: &Vector3, config: &Aimb
     let speed_multiplier = config.speed;
     let scale = 1.0 / 2.5;
 
-    dbg!(absolute_delta);
     let multiplier = fov_multiplier * tickrate_multiplier * speed_multiplier;
-    dbg!(multiplier);
 
     let scaled_delta = absolute_delta * (multiplier * scale);
-    dbg!(scaled_delta);
 
-    let dx = -scaled_delta.yaw.ceil() as i32;
-    let dy = scaled_delta.pitch.ceil() as i32;
+    let dx_f = -scaled_delta.yaw;
+    let dy_f = scaled_delta.pitch;
 
-    dbg!(dx, dy);
+    ctx.mouse_accum.0 += dx_f;
+    ctx.mouse_accum.1 += dy_f;
+
+    let dx;
+    let dy;
+
+    if ctx.mouse_accum.0 < 1.0 && ctx.mouse_accum.0 > -1.0 {
+        dx = 0;
+    } else {
+        dx = ctx.mouse_accum.0 as _;
+    }
+    if ctx.mouse_accum.1 < 1.0 && ctx.mouse_accum.1 > -1.0 {
+        dy = 0;
+    } else {
+        dy = ctx.mouse_accum.1 as _;
+    }
+
+    ctx.mouse_accum.0 -= dx as f32;
+    ctx.mouse_accum.1 -= dy as f32;
 
     system::move_mouse_relative(dx, dy);
 }

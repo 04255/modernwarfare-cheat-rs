@@ -22,7 +22,13 @@ pub const LOCAL_INDEX_OFFSET: Address = 0x1F4;
 // 4C 8D 96 ? ? ? 00 B3 01
 pub const NO_RECOIL: Address = 0x144;
 
-pub const UNIT_SCALE: f32 = 0.025400;
+// 4C 8D 05 ? ? ? ? 41 0F B7 84 50 ? ? ? ? 66 39 41 02 74 07 BF ? ? ? ?
+pub const FUNCTION_DISTRIBUTE: Address = 0x97EEA40;
+// F3 0F 11 ? 1C 01 00 00 83 ? 3C 01 00 00 03 48 89 ? 88 00 00 00 + 22
+// movss xmm0
+pub const ABOUT_VISIBLE_FUNCTION: Address = 0x56535540;
+
+pub const UNIT_SCALE: f32 = 0.0254;
 
 pub mod entity {
     use memlib::memory::Address;
@@ -84,8 +90,16 @@ pub mod bones {
     // 0F BF B4 ? ? ? ? ? 89 ? 24 ? 85 ?
     // points to decryption, encrypted_ptr is in mov r8, cs:qword_
     pub const ENCRYPTED_PTR: Address = 0x14B82A18;
-    pub const BASE_POS: Address = 0x1F86C;
+    // 48 05 ? ? ? ? 48 89 44 24 ? 4C 8D 84 24
+    pub const BASE_POS: Address = 0x1B644;
     pub const INDEX_STRUCT_SIZE: usize = 0x150;
+}
+
+pub mod weapon {
+    use memlib::memory::Address;
+
+    // 4C 8B 94 CF ? ? ? ? 8D 4A 01 48 8B 7C 24 ? 45 8B 82 ? ? ? ? 45 85 C0
+    pub const WEAPON_DEFS_COMPLETE: Address = 0x13BCB930;
 }
 
 

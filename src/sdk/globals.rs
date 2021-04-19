@@ -16,6 +16,7 @@ pub static CLIENT_INFO: GlobalCell<Option<u64>> = GlobalCell::new(None);
 pub static CHAR_ARRAY_BASE: GlobalCell<Option<u64>> = GlobalCell::new(None);
 pub static BONE_BASE: GlobalCell<Option<u64>> = GlobalCell::new(None);
 pub static REFDEF: GlobalCell<Option<Pointer<RefDef>>> = GlobalCell::new(None);
+pub static VISIBLE_BASE: GlobalCell<Option<u64>> = GlobalCell::new(None);
 
 pub static LAST_UPDATE: GlobalCell<Option<Instant>> = GlobalCell::new(None);
 
@@ -50,11 +51,14 @@ pub fn update_addresses() {
         CHAR_ARRAY_BASE.set(None);
         BONE_BASE.set(None);
         REFDEF.set(None);
+        VISIBLE_BASE.set(None);
 
         return;
     }
     let client_info = client_info.unwrap();
     CLIENT_INFO.set(Some(client_info));
+
+    VISIBLE_BASE.set(Some(encryption::get_visible_base(base)));
 
     match encryption::get_client_base_address(base, client_info) {
         Ok(char_array) => CHAR_ARRAY_BASE.set(Some(char_array)),

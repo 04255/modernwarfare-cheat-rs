@@ -22,6 +22,9 @@ mod ffi {
         pub fn decrypt_client_base(encrypted_address: u64, game_base_address: u64, last_key: u64, peb: u64) -> u64;
         pub fn decrypt_bone_base(encrypted_address: u64, game_base_address: u64, last_key: u64, peb: u64) -> u64;
         pub fn get_bone_index(index: u64, game_base_address: u64) -> u64;
+        pub fn get_visible_base(index: i32, game_base_address: u64, func_distribute: u64, vis_function: u64) -> u64;
+        // 0: not visible, 1: visible: 2: error
+        pub fn is_visible(index: i32, last_visible_offset: u64) -> u32;
     }
 }
 
@@ -136,6 +139,22 @@ pub fn get_bone_base_address(game_base_address: Address) -> Result<Address> {
 
 pub fn get_bone_index(index: u64, game_base_address: Address) -> u64 {
     unsafe { ffi::get_bone_index(index, game_base_address) }
+}
+
+//         pub fn get_visible_base(index: i32, game_base_address: u64, func_distribute: u64, vis_function: u64) -> uint64_t;
+//         // 0: not visible, 1: visible: 2: error
+//         pub fn is_visible(index: i32, last_visible_offset: u64) -> u32;
+
+pub fn get_visible_base(game_base_address: Address) -> Address {
+    unsafe { ffi::get_visible_base(0, game_base_address, offsets::FUNCTION_DISTRIBUTE, offsets::ABOUT_VISIBLE_FUNCTION) }
+}
+
+pub fn is_visible(index: i32, visible_base: Address) -> Result<bool> {
+    match unsafe { ffi::is_visible(index, visible_base) } {
+        0 => Ok(false),
+        1 => Ok(true),
+        n => Err(anyhow!("Error code {}", n))
+    }
 }
 
 #[cfg(test)]

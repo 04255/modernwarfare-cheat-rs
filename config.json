@@ -1,1 +1,40 @@
-{"aimbot_config":{"enabled":true,"teams":true,"bone":"Head","fov":30.0,"speed":2.0,"keybind":{"WhilePressed":[5]},"aim_lock":true,"distance_limit":400.0,"aim_at_downed":false,"scale_speed":true},"esp_config":{"enabled":true,"name_color":4294967295,"box_color":4289213053,"highlighted_box_color":4294716371,"max_distance":500.0,"teams":true,"opacity":200,"skeleton":false,"extra_info_distance":200.0},"closest_player_config":{"enabled":true,"ignore_downed":true,"ignore_teammates":true},"no_recoil_enabled":false,"friends":[]}ends":[]}}
+{
+  "aimbot_config": {
+    "aimbot": "AimbotConfig",
+    "enabled": true,
+    "teams": true,
+    "bone": "Head",
+    "fov": 30.0,
+    "speed": 2.0,
+    "keybind": {
+      "WhilePressed": [
+        5
+      ]
+    },
+    "aim_lock": true,
+    "distance_limit": 400.0,
+    "aim_at_downed": false,
+    "scale_speed": true
+  },
+  "esp_config": {
+    "esp": "EspConfig",
+    "enabled": true,
+    "name_color": 4294967295,
+    "box_color": 4289213053,
+    "highlighted_box_color": 4294716371,
+    "max_distance": 500.0,
+    "teams": true,
+    "opacity": 200,
+    "skeleton": false,
+    "extra_info_distance": 200.0
+  },
+  "closest_player_config": {
+    "closest-player": "ClosestPlayerConfig",
+    "enabled": true,
+    "ignore_downed": true,
+    "ignore_teammates": true
+  },
+  "no_recoil_enabled": false,
+  "friends": [],
+  "seconds_pred_history": 0.5
+}

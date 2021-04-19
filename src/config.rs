@@ -7,6 +7,7 @@ use memlib::winutil::is_key_down;
 use serde::{Serialize, Deserialize};
 use std::io::{Read, Write, BufReader, BufWriter};
 use std::fs::{File, OpenOptions};
+use std::fs;
 use log::*;
 
 // The config struct passed in the main hack loop
@@ -29,7 +30,8 @@ pub struct Config {
 
     #[imgui(checkbox(label = "No Recoil"))]
     pub no_recoil_enabled: bool,
-    pub friends: Vec<String>    // Will consider friends teammates
+    pub friends: Vec<String>,    // Will consider friends teammates
+    pub seconds_pred_history: f32
 }
 
 impl Default for Config {
@@ -39,7 +41,8 @@ impl Default for Config {
             closest_player_config: ClosestPlayerConfig::default(),
             esp_config: EspConfig::default(),
             no_recoil_enabled: false,
-            friends: vec![]
+            friends: vec![],
+            seconds_pred_history: 0.5
         }
     }
 }
@@ -51,10 +54,9 @@ impl Config {
 
     /// Loads the config from a file or returns None
     pub fn load() -> Option<Self> {
-        let file = File::open(Self::get_config_loc()).ok()?;
-        let reader = BufReader::new(file);
+        let data = fs::read(Self::get_config_loc()).ok()?;
 
-        match serde_json::from_reader(reader) {
+        match serde_json::from_slice(&data) {
             Ok(cfg) => Some(cfg),
             Err(e) => {
                 error!("Error reading config file: {}", e);
@@ -64,15 +66,7 @@ impl Config {
     }
 
     pub fn save(&self) {
-        let file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(Self::get_config_loc())
-            .unwrap();
-
-        let writer = BufWriter::new(file);
-
-        serde_json::to_writer(writer, &self).unwrap()
+        fs::write(Self::get_config_loc(), serde_json::to_string_pretty(&self).unwrap()).expect("Failed to write config");
     }
 }
 

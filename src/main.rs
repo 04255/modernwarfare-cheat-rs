@@ -33,14 +33,18 @@ fn run() -> Result<()> {
     // Create a handle to the game
     let handle = Handle::from_interface(DriverProcessHandle::attach(PROCESS_NAME)?);
 
-    let mut window = Window::hijack_nvidia().unwrap_or_else(|_| Window::create().expect("Failed to create window"));
+    // let mut window = Window::hijack_nvidia().unwrap_or_else(|_| {
+    //     debug!("Could not hijack nvidia, creating window");
+    //     Window::create().expect("Failed to create window")
+    // });
+    let mut window = Window::hijack_nvidia().expect("Failed to create window");
     let cod_window = find_cod_window(handle.get_process_info().pid).expect("Could not find cod window");
     window.target_hwnd = Some(cod_window);
     window.bypass_screenshots(true);
 
     memlib::system::init().unwrap();
 
-    sdk::init(handle);
+    sdk::init(handle)?;
 
     // Run the hack loop
     hacks::hack_main(window)?;

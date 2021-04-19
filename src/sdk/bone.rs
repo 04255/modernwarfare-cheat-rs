@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use memlib::math::Vector3;
-use memlib::memory::{read_memory, Address};
+use memlib::memory::{read_memory, Address, dump_memory, read_bytes};
 use anyhow::*;
 use log::*;
 use super::{offsets};
@@ -88,7 +88,7 @@ pub fn get_bone_position(entity_num: i32, bone: u32) -> Result<Vector3> {
 
     let bone_pos: Vector3 = read_memory(bone_ptr as u64 + (bone as u64 * 0x20) + 0x10);
     if bone_pos.is_zero() {
-        bail!("Could not find bone_pos");
+        bail!("bone_pos was zero");
     }
 
     let client_info = CLIENT_INFO.get().ok_or(anyhow!("Could not find client_info_base"))?;

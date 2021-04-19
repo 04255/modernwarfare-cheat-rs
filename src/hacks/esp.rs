@@ -2,12 +2,12 @@ use std::cmp;
 use std::cmp::Ordering;
 
 use memlib::math::{Vector2, Vector3};
-use memlib::unwrap_or_return;
+use memlib::{unwrap_or_return, unwrap_or_continue};
 use rand::{RngCore, SeedableRng};
 
 use crate::config::Config;
 use crate::hacks::aimbot::AimbotContext;
-use crate::sdk::{Player, units_to_m, GameInfo};
+use crate::sdk::{Player, units_to_m, GameInfo, world_to_screen};
 use crate::sdk::bone::Bone;
 use crate::sdk::CharacterStance;
 use serde::{Serialize, Deserialize};
@@ -16,6 +16,7 @@ use imgui;
 use memlib::overlay::{Color, Draw};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, imgui_ext::Gui)]
+#[serde(tag = "esp")]
 pub struct EspConfig {
     #[imgui(checkbox(label = "ESP Enabled"))]
     enabled: bool,
@@ -58,7 +59,7 @@ pub fn esp(game_info: &GameInfo, overlay: &mut impl Draw, config: &Config, aimbo
     let esp_config = &config.esp_config;
 
     if !esp_config.enabled {
-        return
+        return;
     }
 
     let mut players: Vec<_> = game_info.players.iter()
@@ -93,7 +94,7 @@ pub fn esp(game_info: &GameInfo, overlay: &mut impl Draw, config: &Config, aimbo
             &player,
             &esp_config,
             units_to_m((player.origin - game_info.get_local_player().origin).length()),
-            highlighted
+            highlighted,
         );
     }
 }
@@ -117,14 +118,14 @@ fn draw_esp(overlay: &mut impl Draw, player: &Player, config: &EspConfig, distan
         (right_x, top_y).into(),
         BoxOptions::default()
             .color(Color::from_rgb(0, 0, 0).opacity(config.opacity))
-            .width(3.0)
+            .width(3.0),
     );
     // bbox
     overlay.draw_box(
         (left_x, bottom_y).into(),
         (right_x, top_y).into(),
         BoxOptions::default()
-            .color(if highlighted { config.highlighted_box_color } else { config.box_color }.opacity(config.opacity))
+            .color(if highlighted { config.highlighted_box_color } else { config.box_color }.opacity(config.opacity)),
     );
 
     if distance < config.extra_info_distance {
@@ -136,7 +137,7 @@ fn draw_esp(overlay: &mut impl Draw, player: &Player, config: &EspConfig, distan
                 .color(config.name_color.opacity(config.opacity))
                 .style(TextStyle::Shadow)
                 .font(Font::Verdana)
-                .centered_horizontal(true)
+                .centered_horizontal(true),
         );
 
         let health_color = Color::from_hsv((player.health as f32 / 127.0) * 120.0, 45.0, 100.0).opacity(config.opacity);
@@ -146,16 +147,15 @@ fn draw_esp(overlay: &mut impl Draw, player: &Player, config: &EspConfig, distan
             Vector2 { x: left_x - 2.0, y: top_y - 1.0 }, // top right
             BoxOptions::default()
                 .color(Color::from_rgba(0, 0, 0, 180).opacity(config.opacity / 2))
-                .filled(true)
+                .filled(true),
         );
         overlay.draw_box(
             Vector2 { x: left_x - 5.0, y: bottom_y }, // bottom left
             Vector2 { x: left_x - 3.0, y: bottom_y - ((height) * (player.health as f32 / 127.0)) }, // top right
             BoxOptions::default()
                 .color(health_color)
-                .filled(true)
+                .filled(true),
         );
-
     }
 
     // draw flags
@@ -169,7 +169,7 @@ fn draw_esp(overlay: &mut impl Draw, player: &Player, config: &EspConfig, distan
             TextOptions::default()
                 .color(color)
                 .style(TextStyle::Outlined)
-                .font(Font::Pixel)
+                .font(Font::Pixel),
         );
         flag_offset += flag_height;
     };
@@ -195,25 +195,22 @@ fn draw_esp(overlay: &mut impl Draw, player: &Player, config: &EspConfig, distan
         // draw_flag(&format!("{}", player.team), team_color.opacity(config.opacity));
     }
 
-    /*
     if config.skeleton {
         draw_skeleton(overlay, &player, Color::from_rgb(255, 255, 255).opacity(config.opacity), 1.0);
-    }*/
+    }
 }
 
-/*
 pub fn draw_skeleton(overlay: &mut impl Draw, player: &Player, color: Color, thickness: f32) {
     use memlib::overlay::*;
 
     for (bone1, bone2) in crate::sdk::bone::BONE_CONNECTIONS {
-        let pos1 = unwrap_or_return!(world_to_screen(&unwrap_or_return!(player.get_bone_position(*bone1).ok())));
-        let pos2 = unwrap_or_return!(world_to_screen(&unwrap_or_return!(player.get_bone_position(*bone2).ok())));
+        let pos1 = unwrap_or_continue!(world_to_screen(unwrap_or_continue!(player.get_bone_position(*bone1))));
+        let pos2 = unwrap_or_continue!(world_to_screen(unwrap_or_continue!(player.get_bone_position(*bone2))));
         overlay.draw_line(pos1, pos2, LineOptions::default().color(color).width(thickness));
     }
 
-    // Draw head circle
     let trans = Vector3 { x: 0.0, y: 0.0, z: 4.0 };
-    let head_pos = unwrap_or_return!(game.world_to_screen(&(unwrap_or_return!(player.get_bone_position(&game, Bone::Head).ok()) + trans)));
-    overlay.draw_circle(head_pos, 2.5, CircleOptions::default().color(color));
+    let head1 = unwrap_or_return!(player.get_bone_position(Bone::Head));
+    let head2 = head1 + trans;
+    overlay.draw_line(unwrap_or_return!(world_to_screen(head1)), unwrap_or_return!(world_to_screen(&head2)), LineOptions::default().color(color).width(thickness));
 }
- */

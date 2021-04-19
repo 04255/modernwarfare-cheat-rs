@@ -7,6 +7,7 @@ use memlib::math::Vector2;
 use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, imgui_ext::Gui)]
+#[serde(tag = "closest-player")]
 pub struct ClosestPlayerConfig {
     #[imgui(checkbox(label = "Closest player Enabled"))]
     pub enabled: bool,
