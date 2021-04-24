@@ -35,7 +35,7 @@ fn interop_read_bytes(address: u64, size: u64, buf: usize) {
             copy(value.as_ptr(), buf as *mut u8, size as _);
         }
         Err(e) => {
-            error!("Error reading memory in C++ encryption code: {:?}", e);
+            error!("Error reading {} bytes from 0x{:X} in C++ encryption code: {:?}", size, address, e);
         }
     };
 }

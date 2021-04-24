@@ -57,14 +57,14 @@ impl AimbotConfig {
 
 #[derive(Clone)]
 pub struct AimbotContext {
-    pub aim_lock_player_id: Option<i32>, // The target ID we are aimlocking to
+    pub aim_lock_player: Option<String>, // The target ID we are aimlocking to
     pub location_history: HashMap<i32, VecDeque<(Instant, Vector3)>>,
     pub mouse_accum: (f32, f32)
 }
 
 impl Default for AimbotContext {
     fn default() -> Self {
-        Self{aim_lock_player_id: None, location_history: HashMap::new(), mouse_accum: (0.0, 0.0)}
+        Self{aim_lock_player: None, location_history: HashMap::new(), mouse_accum: (0.0, 0.0)}
     }
 }
 
@@ -76,14 +76,14 @@ pub fn aimbot(global_config: &Config, game_info: &GameInfo, ctx: &mut AimbotCont
     }
 
     if !config.keybind.get_state() {
-        ctx.aim_lock_player_id = None;
+        ctx.aim_lock_player = None;
         return;
     }
 
     // Get target
     let target = {
-        if let Some(id) = ctx.aim_lock_player_id {
-            match game_info.get_player_by_id(id) {
+        if let Some(name) = &ctx.aim_lock_player {
+            match game_info.get_player_by_name(&name) {
                 Some(pl) => Some((pl, get_aim_position(&pl, &game_info, &ctx))),
                 None => get_target(&game_info, &config, &ctx, &global_config.friends)
             }
@@ -94,16 +94,16 @@ pub fn aimbot(global_config: &Config, game_info: &GameInfo, ctx: &mut AimbotCont
 
     if target.is_none() {
         debug!("No target");
-        ctx.aim_lock_player_id = None;
+        ctx.aim_lock_player = None;
         return;
     }
 
     let (player, target) = target.unwrap();
     if player.stance == CharacterStance::Downed {
-        ctx.aim_lock_player_id = None;
+        ctx.aim_lock_player = None;
     }
 
-    ctx.aim_lock_player_id = Some(player.id);
+    ctx.aim_lock_player = Some(player.name.clone());
 
 
     // Aim at target
@@ -115,7 +115,7 @@ pub fn aimbot(global_config: &Config, game_info: &GameInfo, ctx: &mut AimbotCont
 fn get_aim_position(player: &Player, game_info: &GameInfo, ctx: &AimbotContext) -> Vector3 {
     let target = Target::from_location_history(&player.origin, &ctx.location_history.get(&player.id).unwrap());
 
-    let projectile = Projectile{velocity: 40000.0, gravity: m_to_units(9.8), source_pos: game_info.camera_pos};
+    let projectile = Projectile{velocity: 25000.0, gravity: m_to_units(9.8), source_pos: game_info.camera_pos};
     // let projectile = Projectile{velocity: 4000.0, gravity: m_to_units(9.8), source_pos: game_info.camera_pos};
 
     let pred_pos = run_prediction(&target, &projectile);
@@ -153,23 +153,25 @@ fn get_target<'a>(game_info: &'a GameInfo, config: &AimbotConfig, ctx: &AimbotCo
 
         // first calculate fov to origin so we don't have to run prediction for every player
         let fov_to_origin = math::calculate_relative_angles(&game_info.camera_pos, &player.origin, &game_info.local_view_angles).length();
-        dbg!(fov_to_origin);
         if fov_to_origin * 1.5 > config.fov {
             return None;
         }
 
         let aim_position = get_aim_position(&player, &game_info, &ctx);
         let angle = math::calculate_relative_angles(&game_info.camera_pos, &aim_position, &game_info.local_view_angles).length();
-        dbg!(angle);
         if angle > config.fov {
             return None;
         }
 
         Some((player, aim_position, angle, distance))
     })
-        .min_by_key(|(_, _, angle, distance)| {
-            // Combine fov and distance
-            (angle + (distance / 100.0) * angle) as i32
+        .min_by_key(|(player, _, angle, distance)| {
+            if player.stance == CharacterStance::Downed {
+                i32::MAX
+            } else {
+                // Combine fov and distance
+                (angle + (distance / 100.0) * angle) as i32
+            }
         })
         .map(|(player, aim_position, _, _)| (player, aim_position))
 }

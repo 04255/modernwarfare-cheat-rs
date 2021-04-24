@@ -88,7 +88,7 @@ pub fn esp(game_info: &GameInfo, overlay: &mut impl Draw, config: &Config, aimbo
             &(a.origin - game_info.camera_pos).length()).unwrap_or(Ordering::Equal));
 
     for &player in &players {
-        let highlighted = player.id == aimbot_context.aim_lock_player_id.unwrap_or(-1);
+        let highlighted = if let Some(name) = &aimbot_context.aim_lock_player { name == &player.name } else { false };
         draw_esp(
             overlay,
             &player,

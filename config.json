@@ -2,18 +2,18 @@
   "aimbot_config": {
     "aimbot": "AimbotConfig",
     "enabled": true,
-    "teams": true,
+    "teams": false,
     "bone": "Head",
-    "fov": 30.0,
-    "speed": 2.0,
+    "fov": 22.378378,
+    "speed": 11.955405,
     "keybind": {
       "WhilePressed": [
         5
       ]
     },
     "aim_lock": true,
-    "distance_limit": 400.0,
-    "aim_at_downed": false,
+    "distance_limit": 205.4054,
+    "aim_at_downed": true,
     "scale_speed": true
   },
   "esp_config": {
@@ -22,11 +22,11 @@
     "name_color": 4294967295,
     "box_color": 4289213053,
     "highlighted_box_color": 4294716371,
-    "max_distance": 500.0,
-    "teams": true,
+    "max_distance": 264.86487,
+    "teams": false,
     "opacity": 200,
     "skeleton": false,
-    "extra_info_distance": 200.0
+    "extra_info_distance": 97.297295
   },
   "closest_player_config": {
     "closest-player": "ClosestPlayerConfig",
@@ -34,7 +34,7 @@
     "ignore_downed": true,
     "ignore_teammates": true
   },
-  "no_recoil_enabled": false,
+  "no_recoil_enabled": true,
   "friends": [],
   "seconds_pred_history": 0.5
 }

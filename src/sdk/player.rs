@@ -53,9 +53,14 @@ impl Player {
             bail!("Origin was {:?}", origin);
         }
 
-        let dead: i32 = read_memory(base_address + character_info::DEAD_1);
-        if dead != 0 {
-            bail!("Dead was {}", dead);
+        let dead_1: i32 = read_memory(base_address + character_info::DEAD_1);
+        if dead_1 != 0 {
+            bail!("Dead was {}", dead_1);
+        }
+
+        let dead_2: i32 = read_memory(base_address + character_info::DEAD_2);
+        if dead_2 != 0 {
+            bail!("Dead_2 was {}", dead_2);
         }
 
         let stance: CharacterStance = read_memory(base_address + character_info::STANCE);
@@ -71,40 +76,36 @@ impl Player {
         let name = name_struct.get_name();
         let health = name_struct.health;
 
-        // TODO: Cache?
-        let mut all_bones: Vec<_> = super::bone::BONE_CONNECTIONS.iter()
-            .flat_map(|(a, b)| std::array::IntoIter::new([a, b]).collect::<Vec<_>>())
-            .collect();
-        all_bones.dedup();
-
         let mut bones = HashMap::new();
 
-        // FIXME
-        if world_to_screen(&origin).is_some() {
-            for bone in all_bones {
-                let pos = get_bone_position(index, *bone as _);
-                match pos {
-                    Ok(pos) => {
-                        let distance = units_to_m((origin - pos).length());
-                        if distance > 5.0 {
-                            debug!("bone {:?} position for {} was {}m away", bone, name, distance);
-                            continue;
+        if super::offsets::bones::ENCRYPTED_PTR != 0 {
+            // TODO: Cache?
+            let mut all_bones: Vec<_> = super::bone::BONE_CONNECTIONS.iter()
+                .flat_map(|(a, b)| std::array::IntoIter::new([a, b]).collect::<Vec<_>>())
+                .collect();
+            all_bones.dedup();
+
+            // FIXME
+            if world_to_screen(&origin).is_some() {
+                for bone in all_bones {
+                    let pos = get_bone_position(index, *bone as _);
+                    match pos {
+                        Ok(pos) => {
+                            let distance = units_to_m((origin - pos).length());
+                            if distance > 5.0 {
+                                debug!("bone {:?} position for {} was {}m away", bone, name, distance);
+                                continue;
+                            }
+                            bones.insert(*bone, pos);
                         }
-                        bones.insert(*bone, pos);
-                    },
-                    Err(e) => {
-                        trace!("Error getting bone {:?} position for {}: {}", bone, name, e);
+                        Err(e) => {
+                            trace!("Error getting bone {:?} position for {}: {}", bone, name, e);
+                        }
                     }
                 }
             }
+            trace!("Found {} bone positions for {}", bones.len(), name);
         }
-        trace!("Found {} bone positions for {}", bones.len(), name);
-        // if name == "draven" {
-        //     let cam = get_camera_position().unwrap();
-        //     if let Some(head) = bones.get(&Bone::Head) {
-        //         dbg!(cam - head);
-        //     }
-        // }
 
         // let visible = is_visible(index, globals::VISIBLE_BASE.get().unwrap()).unwrap_or_else(|e| {
         //     error!("Error calling visible for index {}: {:?}", index, e);

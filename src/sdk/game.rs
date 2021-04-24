@@ -34,6 +34,10 @@ impl GameInfo {
         self.players.iter().find(|&p| p.id == id)
     }
 
+    pub fn get_player_by_name(&self, name: &str) -> Option<&Player> {
+        self.players.iter().find(|&p| p.name == name)
+    }
+
     pub fn get_local_player(&self) -> &Player {
         self.get_player_by_id(self.local_index)
             .ok_or_else(|| format!("Could not get local player by index in GameInfo. local_index = {}, indexes = {:?}",
