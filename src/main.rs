@@ -1,26 +1,26 @@
 #![feature(iterator_fold_self)]
 #![feature(in_band_lifetimes)]
 #![feature(const_fn)]
+#![feature(test)]
 
 use memlib::logger::MinimalLogger;
 use memlib::memory;
-use memlib::overlay;
 
 use log::*;
 use anyhow::*;
 use std::error::Error;
 use memlib::memory::handle_interfaces::driver_handle::{DriverProcessHandle};
 use memory::Handle;
-use memlib::overlay::imgui::{Imgui, ImguiConfig};
-use memlib::overlay::window::Window;
 use win_key_codes::VK_INSERT;
 use msgbox::IconType;
-use memlib::winutil::{HWND, get_windows};
+use winutil::{HWND, get_windows};
 use std::time::Duration;
+use window_overlay::window::OverlayWindow;
 
 mod sdk;
 mod hacks;
 mod config;
+mod gui;
 
 pub const PROCESS_NAME: &str = "ModernWarfare.exe";
 pub const CHEAT_TICKRATE: u64 = 90;
@@ -42,20 +42,10 @@ fn run() -> Result<()> {
         }
     };
 
-    let mut window = Window::hijack_nvidia().unwrap_or_else(|_| {
-        debug!("Could not hijack nvidia, creating window");
-        Window::create().expect("Failed to create window")
-    });
-    let cod_window = find_cod_window(handle.get_process_info().pid).expect("Could not find cod window");
-    window.target_hwnd = Some(cod_window);
-    window.bypass_screenshots(true);
-
-    memlib::system::init().unwrap();
-
     sdk::init(handle)?;
 
     // Run the hack loop
-    hacks::hack_main(window)?;
+    hacks::hack_main()?;
 
     Ok(())
 }

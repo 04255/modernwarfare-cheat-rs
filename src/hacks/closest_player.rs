@@ -1,19 +1,17 @@
 use crate::sdk::*;
 use crate::sdk::CharacterStance;
-use crate::config::{Keybind, Config};
+use crate::config::{Config};
 use log::*;
-use memlib::overlay::{Color, TextStyle, Font, TextOptions, Draw};
 use memlib::math::Vector2;
 use serde::{Serialize, Deserialize};
+use window_overlay::imgui::overlay::ImguiOverlay;
+use window_overlay::types::*;
+use window_overlay::color::Color;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, imgui_ext::Gui)]
-#[serde(tag = "closest-player")]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ClosestPlayerConfig {
-    #[imgui(checkbox(label = "Closest player Enabled"))]
     pub enabled: bool,
-    #[imgui(checkbox(label = "Closest player ignore downed"))]
     pub ignore_downed: bool,
-    #[imgui(checkbox(label = "Closest player ignore teammates"))]
     pub ignore_teammates: bool,
 }
 
@@ -27,7 +25,7 @@ impl ClosestPlayerConfig {
     }
 }
 
-pub fn closest_player(game_info: &GameInfo, global_config: &Config, overlay: &mut impl Draw) {
+pub fn closest_player(game_info: &GameInfo, global_config: &Config, overlay: &ImguiOverlay) {
     let config = &global_config.closest_player_config;
     if !config.enabled {
         return;

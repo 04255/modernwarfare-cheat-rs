@@ -3,30 +3,30 @@
 use memlib::memory::{Address, OffsetDefinition, dump_offsets};
 use serde::de::IntoDeserializer;
 
-// 48 8D 15 ? ? ? ? 33 15 ? ? ? ? F3 0F 10 73 ?
-pub const REFDEF: Address = 0x16C05190;
+// 4C 8D 1D ? ? ? ? 44 8B 15 ? ? ? ? 48 8D 1D ? ? ? ? 4C 8B C9
+pub const REFDEF: Address = 0x17211518;
 
 // 48 8D 0D ? ? ? ? 48 8B 0C C1 48 8B 01 FF 90 ? ? ? ?
 // (last qword)
-pub const NAME_ARRAY: Address = 0x16C10258;
+pub const NAME_ARRAY: Address = 0x1721C5F8;
 pub const NAME_LIST_OFFSET: Address = 0x4C70;
 
 // 48 8B 05 ? ? ? ? 48 8B 7C 24 ? 48 05 ? ? ? ?
-pub const CAMERA_POINTER: Address = 0x139ECE40;
+pub const CAMERA_POINTER: Address = 0x144EE700;
 pub const CAMERA_OFFSET: Address = 0x1D8;
 
 // 48 83 BB ? ? ? ? ? 0F 84 ? ? ? ? 48 89 B4 24 ? ? ? ?
-pub const LOCAL_INDEX_POINTER: Address = 0x37030;
+pub const LOCAL_INDEX_POINTER: Address = 0x59400;
 pub const LOCAL_INDEX_OFFSET: Address = 0x1F4;
 
 // 4C 8D 96 ? ? ? 00 B3 01
-pub const NO_RECOIL: Address = 0x55BC0;
+pub const NO_RECOIL: Address = 0x1E6DC;
 
 // 4C 8D 05 ? ? ? ? 41 0F B7 84 50 ? ? ? ? 66 39 41 02 74 07 BF ? ? ? ?
-pub const FUNCTION_DISTRIBUTE: Address = 0x96DD9F0;
+pub const FUNCTION_DISTRIBUTE: Address = 0x9DCDD80;
 // F3 0F 11 ? 1C 01 00 00 83 ? 3C 01 00 00 03 48 89 ? 88 00 00 00 + 22
 // movss xmm0
-pub const ABOUT_VISIBLE_FUNCTION: Address = 0x56535540;
+pub const ABOUT_VISIBLE_FUNCTION: Address = 0x53B49A0;
 
 pub const UNIT_SCALE: f32 = 0.0254;
 
@@ -43,26 +43,26 @@ pub mod character_info {
     use memlib::memory::Address;
 
     // 48 69 D3 ?? ?? ?? ?? 48 03 96 ?? ?? ?? ??
-    pub const SIZE: usize = 0x3A58;
+    pub const SIZE: usize = 0x3A88;
 
     // C7 87 ?? ?? ?? ?? ?? ?? ?? ?? C7 87 ?? ?? ?? ?? ?? ?? ?? ?? 41
-    pub const VALID: Address = 0x2D8;
+    pub const VALID: Address = 0x3E4;
 
     // 49 8B D9 41 0F B6 F0 8B F9 48 8B EA
     // Jump to CMP
-    pub const POS_PTR: Address = 0x39B0;
+    pub const POS_PTR: Address = 0x4C8;
 
     // 8B 87 ? ? ? ? 4C 8B BC 24 ? ? ? ? 4C 8B B4 24 ? ? ? ? 4C 8B AC 24 ? ? ? ? 4C 8B A4 24 ? ? ? ? 85 C0 74 16
-    pub const TEAM: Address = 0x170;
+    pub const TEAM: Address = 0xB14;
 
     // 83 BF ? ? ? ? ? 75 0A F3 0F 10 35 ? ? ? ? EB 08
-    pub const STANCE: Address = 0x5F4;
+    pub const STANCE: Address = 0xC00;
 
     // C7 83 ? ? ? ? ? ? ? ? C7 83 ? ? ? ? ? ? ? ? E8 ? ? ? ? 44 0F B6 C6 48 8B D5 48 8B CF E8 ? ? ? ?
-    pub const DEAD_1: Address = 0x38CC;
+    pub const DEAD_1: Address = 0x14B8;
 
     // 41 83 B8 ? ? ? ? ? 0F 85 ? ? ? ? 41 B8 ? ? ? ?
-    pub const DEAD_2: Address = 0xDD8;
+    pub const DEAD_2: Address = 0x9B0;
 
     // not working
     pub const ADS: Address = 0xBD4;
@@ -74,14 +74,14 @@ pub mod client_info {
     use memlib::memory::Address;
 
     // 48 8B 1D ? ? ? ? C6 44 24 ? ? 0F B6 44 24 ?
-    pub const ENCRYPTED_PTR: Address = 0x16C02808;
+    pub const ENCRYPTED_PTR: Address = 0x1720EB88;
 }
 
 pub mod client_base {
     use memlib::memory::Address;
 
     // 48 8B 83 ?? ?? ?? ?? C6 44 24 ?? ?? 0F B6
-    pub const BASE_OFFSET: Address = 0x98C98;
+    pub const BASE_OFFSET: Address = 0x9DBE8;
 }
 
 pub mod bones {
@@ -89,10 +89,10 @@ pub mod bones {
 
     // 0F BF B4 ? ? ? ? ? 89 ? 24 ? 85 ?
     // points to decryption, encrypted_ptr is in mov r8, cs:qword_
-    // pub const ENCRYPTED_PTR: Address = 0x14A71A18;
-    pub const ENCRYPTED_PTR: Address = 0;
+    // pub const ENCRYPTED_PTR: Address = 0x15212128;
+    pub const ENCRYPTED_PTR: Address = 0x155BC128;
     // 48 05 ? ? ? ? 48 89 44 24 ? 4C 8D 84 24
-    pub const BASE_POS: Address = 0x8D79C;
+    pub const BASE_POS: Address = 0xC4;
     pub const INDEX_STRUCT_SIZE: usize = 0x150;
 }
 

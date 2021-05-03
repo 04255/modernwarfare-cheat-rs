@@ -4,6 +4,7 @@ use log::*;
 
 use crate::sdk::{globals, offsets, Player, structs};
 use crate::sdk;
+use std::time::Instant;
 
 pub fn get_players() -> Option<Vec<Player>> {
     if !in_game() {

@@ -1,7 +1,7 @@
 use crate::sdk::*;
 use log::*;
-use memlib::{math, system};
-use crate::config::{Keybind, Config};
+use memlib::{math};
+use crate::config::{Config};
 use crate::sdk::bone::Bone;
 use crate::sdk::CharacterStance;
 use serde::{Serialize, Deserialize};
@@ -10,29 +10,22 @@ use std::collections::{HashMap, VecDeque};
 use std::time::Instant;
 use memlib::hacks::prediction::{run_prediction, run_bullet_drop, Target, Projectile};
 use std::rc::Rc;
+use winutil::is_key_down;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, imgui_ext::Gui)]
-#[serde(tag = "aimbot")]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AimbotConfig {
-    #[imgui(checkbox(label = "Aimbot enabled"))]
     pub enabled: bool,
-    #[imgui(checkbox(label = "Aim at teams"))]
     pub teams: bool,
     pub bone: Bone,
-    #[imgui(slider(min = 0.0, max = 180.0, label = "Aimbot FOV"))]
     pub fov: f32,
     // FOV in degrees
-    #[imgui(slider(min = 0.5, max = 25.0, label = "Aimbot Smooth"))]
     pub speed: f32,
     // 1 is instant, 1+ is smooth
-    pub keybind: Keybind,
-    #[imgui(checkbox(label = "Aimbot aimlock"))]
+    pub keybind: i32,
     pub aim_lock: bool,
     // Will lock onto the same player until button stops being pressed
-    #[imgui(slider(min = 0.0, max = 2000.0, label = "Aimbot distance limit (m)"))]
     pub distance_limit: f32,
     // Distance limit in metres
-    #[imgui(checkbox(label = "Aim at downed"))]
     pub aim_at_downed: bool,
     /// Smooth based on scope
     pub scale_speed: bool,
@@ -46,7 +39,7 @@ impl AimbotConfig {
             bone: Bone::Head,
             fov: 30.0,
             speed: 2.0,
-            keybind: Keybind::WhilePressed(vec![win_key_codes::VK_XBUTTON1]),
+            keybind: win_key_codes::VK_XBUTTON1,
             aim_lock: true,
             distance_limit: 400.0,
             aim_at_downed: false,
@@ -75,7 +68,7 @@ pub fn aimbot(global_config: &Config, game_info: &GameInfo, ctx: &mut AimbotCont
         return;
     }
 
-    if !config.keybind.get_state() {
+    if !is_key_down(config.keybind) {
         ctx.aim_lock_player = None;
         return;
     }
@@ -220,5 +213,5 @@ fn aim_at(game_info: &GameInfo, player: &Player, target: &Vector3, config: &Aimb
     ctx.mouse_accum.0 -= dx as f32;
     ctx.mouse_accum.1 -= dy as f32;
 
-    system::move_mouse_relative(dx, dy);
+    winutil::move_mouse_relative(dx, dy);
 }

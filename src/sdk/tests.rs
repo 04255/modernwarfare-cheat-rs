@@ -8,10 +8,13 @@ use memlib::memory;
 use super::encryption;
 use crate::sdk::*;
 use std::borrow::Borrow;
-use memlib::memory::Handle;
+use memlib::memory::{Handle, read_bytes};
 use crate::sdk::internal::{get_players, get_camera_angles, get_camera_position, get_local_index, get_player_by_index};
 use bone::Bone;
 use crate::sdk::globals::update_addresses;
+
+extern crate test;
+use test::Bencher;
 
 static INIT: Once = Once::new();
 
@@ -49,7 +52,7 @@ fn get_local_player() {
     init();
 
     let p = internal::get_local_player().unwrap();
-    assert!(p.name == "draven");
+    // assert_eq!(p.name, "draven");
 }
 
 #[test]
@@ -77,4 +80,14 @@ fn get_bone_pos() {
         let bone_pos = player.get_bone_position(Bone::Head).unwrap();
         assert!(units_to_m((bone_pos - player.origin).length()) < 5.0);
     }
+}
+
+#[bench]
+fn bench_read(b: &mut Bencher) {
+    init();
+    let base = globals::GAME_BASE_ADDRESS.get();
+
+    b.iter(|| {
+        let _ = read_bytes(3201373126784 + 0x3E4, 8);
+    });
 }

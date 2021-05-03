@@ -36,6 +36,7 @@ fn interop_read_bytes(address: u64, size: u64, buf: usize) {
         }
         Err(e) => {
             error!("Error reading {} bytes from 0x{:X} in C++ encryption code: {:?}", size, address, e);
+            // panic!()
         }
     };
 }
@@ -76,7 +77,7 @@ pub fn get_refdef_pointer(game_base_address: Address) -> Result<Pointer<RefDef>>
 
 fn sanitize_decrypted_address(address: Address) -> Result<Address> {
     if address > 0xFFFFFFFFFFFFFF {
-        bail!("Address was too large");
+        bail!("Address was too large: {:X}", address);
     }
     if read_bytes(address, 1).is_err() {
         bail!("Could not read address: {:X}", address);
@@ -123,6 +124,9 @@ pub fn get_client_base_address(game_base_address: Address, client_info_address: 
 }
 
 pub fn get_bone_base_address(game_base_address: Address) -> Result<Address> {
+    if offsets::bones::ENCRYPTED_PTR == 0 {
+        bail!("Bone decryption not working");
+    }
     let encrypted_address = try_read_memory(game_base_address + offsets::bones::ENCRYPTED_PTR)?;
     if encrypted_address == 0 {
         bail!("Could not find the encrypted bone_base address");

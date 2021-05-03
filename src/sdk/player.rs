@@ -17,6 +17,7 @@ use super::bone;
 use super::offsets::character_info;
 use super::structs::Name;
 use crate::sdk::encryption::is_visible;
+use std::time::Instant;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -78,6 +79,7 @@ impl Player {
 
         let mut bones = HashMap::new();
 
+        /*
         if super::offsets::bones::ENCRYPTED_PTR != 0 {
             // TODO: Cache?
             let mut all_bones: Vec<_> = super::bone::BONE_CONNECTIONS.iter()
@@ -106,6 +108,7 @@ impl Player {
             }
             trace!("Found {} bone positions for {}", bones.len(), name);
         }
+         */
 
         // let visible = is_visible(index, globals::VISIBLE_BASE.get().unwrap()).unwrap_or_else(|e| {
         //     error!("Error calling visible for index {}: {:?}", index, e);

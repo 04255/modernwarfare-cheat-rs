@@ -3,11 +3,11 @@
     "enabled": true,
     "teams": true,
     "bone": "Head",
-    "fov": 70.2439,
-    "speed": 13.516261,
+    "fov": 30.0,
+    "speed": 2.0,
     "keybind": 5,
     "aim_lock": true,
-    "distance_limit": 323.17072,
+    "distance_limit": 400.0,
     "aim_at_downed": false,
     "scale_speed": true
   },
@@ -20,15 +20,15 @@
     "teams": true,
     "opacity": 200,
     "skeleton": false,
-    "extra_info_distance": 191.0569
+    "extra_info_distance": 200.0
   },
   "closest_player_config": {
     "enabled": true,
     "ignore_downed": true,
     "ignore_teammates": true
   },
-  "no_recoil_enabled": true,
+  "no_recoil_enabled": false,
   "friends": [],
   "seconds_pred_history": 0.5,
-  "show_fps": true
+  "show_fps": false
 }

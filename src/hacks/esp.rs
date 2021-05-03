@@ -11,32 +11,27 @@ use crate::sdk::{Player, units_to_m, GameInfo, world_to_screen};
 use crate::sdk::bone::Bone;
 use crate::sdk::CharacterStance;
 use serde::{Serialize, Deserialize};
+use window_overlay::types::*;
+use window_overlay::color::Color;
 
-use imgui;
-use memlib::overlay::{Color, Draw};
+use window_overlay::imgui::overlay::ImguiOverlay;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, imgui_ext::Gui)]
-#[serde(tag = "esp")]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EspConfig {
-    #[imgui(checkbox(label = "ESP Enabled"))]
-    enabled: bool,
-    name_color: Color,
+    pub enabled: bool,
+    pub name_color: Color,
     // #[imgui(
     //     color(button(preview = "Alpha", input_mode = "RGB")),
     //     color(edit(preview = "HalfAlpha", input_mode = "RGB")),
     //     color(picker(mode = "HueWheel", input_mode = "RGB"))
     // )]
-    box_color: Color,
-    highlighted_box_color: Color,
-    #[imgui(slider(min = 0.0, max = 2000.0, label = "ESP max distance"))]
-    max_distance: f32,
-    #[imgui(checkbox(label = "ESP teams"))]
-    teams: bool,
-    opacity: u8,
-    #[imgui(checkbox(label = "Skeleton"))]
-    skeleton: bool,
-    #[imgui(slider(min = 0.0, max = 500.0, label = "ESP extra info cutoff"))]
-    extra_info_distance: f32,
+    pub box_color: Color,
+    pub highlighted_box_color: Color,
+    pub max_distance: f32,
+    pub teams: bool,
+    pub opacity: u8,
+    pub skeleton: bool,
+    pub extra_info_distance: f32,
 }
 
 impl EspConfig {
@@ -55,7 +50,7 @@ impl EspConfig {
     }
 }
 
-pub fn esp(game_info: &GameInfo, overlay: &mut impl Draw, config: &Config, aimbot_context: &AimbotContext) {
+pub fn esp(game_info: &GameInfo, overlay: &ImguiOverlay, config: &Config, aimbot_context: &AimbotContext) {
     let esp_config = &config.esp_config;
 
     if !esp_config.enabled {
@@ -89,41 +84,43 @@ pub fn esp(game_info: &GameInfo, overlay: &mut impl Draw, config: &Config, aimbo
 
     for &player in &players {
         let highlighted = if let Some(name) = &aimbot_context.aim_lock_player { name == &player.name } else { false };
+
+        let bbox = unwrap_or_continue!(player.get_bounding_box());
+
+        let left_x = bbox.0.x;
+        let bottom_y = bbox.0.y;
+        let right_x = bbox.1.x;
+        let top_y = bbox.1.y;
+
         draw_esp(
             overlay,
             &player,
             &esp_config,
+            (left_x, bottom_y, right_x, top_y),
             units_to_m((player.origin - game_info.get_local_player().origin).length()),
             highlighted,
         );
     }
 }
 
-fn draw_esp(overlay: &mut impl Draw, player: &Player, config: &EspConfig, distance: f32, highlighted: bool) {
-    use memlib::overlay::*;
-
-    let bbox = unwrap_or_return!(player.get_bounding_box());
-
-    let left_x = bbox.0.x;
-    let bottom_y = bbox.0.y;
-    let right_x = bbox.1.x;
-    let top_y = bbox.1.y;
+fn draw_esp(overlay: &ImguiOverlay, player: &Player, config: &EspConfig, bbox: (f32, f32, f32, f32), distance: f32, highlighted: bool) {
+    let (left_x, bottom_y, right_x, top_y) = bbox;
 
     let width = right_x - left_x;
     let height = bottom_y - top_y;
 
     // outline
     overlay.draw_box(
-        (left_x, bottom_y).into(),
-        (right_x, top_y).into(),
+        [left_x, bottom_y],
+        [right_x, top_y],
         BoxOptions::default()
             .color(Color::from_rgb(0, 0, 0).opacity(config.opacity))
             .width(3.0),
     );
     // bbox
     overlay.draw_box(
-        (left_x, bottom_y).into(),
-        (right_x, top_y).into(),
+        [left_x, bottom_y],
+        [right_x, top_y],
         BoxOptions::default()
             .color(if highlighted { config.highlighted_box_color } else { config.box_color }.opacity(config.opacity)),
     );
@@ -174,7 +171,7 @@ fn draw_esp(overlay: &mut impl Draw, player: &Player, config: &EspConfig, distan
         flag_offset += flag_height;
     };
 
-    let team_color = Color::new(rand::rngs::SmallRng::seed_from_u64(player.team as u64).next_u32()).opacity(255);
+    let team_color = Color(rand::rngs::SmallRng::seed_from_u64(player.team as u64).next_u32()).opacity(255);
 
     // Draw distance
     draw_flag(&format!("{}m", distance.round()), team_color.opacity(config.opacity));
@@ -200,9 +197,7 @@ fn draw_esp(overlay: &mut impl Draw, player: &Player, config: &EspConfig, distan
     }
 }
 
-pub fn draw_skeleton(overlay: &mut impl Draw, player: &Player, color: Color, thickness: f32) {
-    use memlib::overlay::*;
-
+pub fn draw_skeleton(overlay: &ImguiOverlay, player: &Player, color: Color, thickness: f32) {
     for (bone1, bone2) in crate::sdk::bone::BONE_CONNECTIONS {
         let pos1 = unwrap_or_continue!(world_to_screen(unwrap_or_continue!(player.get_bone_position(*bone1))));
         let pos2 = unwrap_or_continue!(world_to_screen(unwrap_or_continue!(player.get_bone_position(*bone2))));

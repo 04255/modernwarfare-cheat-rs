@@ -3,23 +3,27 @@ use crate::sdk::*;
 use anyhow::*;
 
 use memlib::util::{LoopTimer, GlobalCell, InitCell};
-use memlib::memory::{read_memory, Address, write_memory};
+use memlib::memory::{read_memory, Address, write_memory, get_process_info};
 use memlib::math::{Angles2, Vector2, Vector3};
-use memlib::overlay::{Color, TextStyle, Font, Draw, TextOptions};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, channel};
 use std::thread::spawn;
 use crate::sdk::bone::Bone;
 use crate::hacks::aimbot::AimbotContext;
 use log::*;
-use memlib::overlay::imgui::{Imgui, ImguiConfig};
-use memlib::overlay::window::Window;
 use win_key_codes::VK_INSERT;
 use std::time::{Instant, Duration};
-use imgui_ext::UiExt;
 use crate::sdk::globals::update_addresses_interval;
 use std::borrow::BorrowMut;
 use std::collections::{HashMap, VecDeque};
+use window_overlay::window::OverlayWindow;
+use window_overlay::imgui::Imgui;
+use window_overlay::imgui::overlay::ImguiOverlay;
+use window_overlay::imgui::keybind::keybind_select;
+use winutil::Event;
+use crate::find_cod_window;
+use window_overlay::types::TextOptions;
+use window_overlay::types;
 
 pub mod aimbot;
 pub mod closest_player;
@@ -36,14 +40,14 @@ pub struct CheatState {
 
 /// The main loop of the cheat
 /// Returns an error if there is an error with any of the tick functions
-pub fn hack_main(window: Window) -> Result<()> {
+pub fn hack_main() -> Result<()> {
     CONFIG.init(Config::load().unwrap_or_default());
     CONFIG.get_ref().save();
     STATE.init(Default::default());
 
     update_addresses_interval(Duration::from_secs(2));
 
-    start_overlay_thread(window);
+    start_overlay_thread();
     no_recoil::start_no_recoil_thread();
 
     hack_loop();
@@ -68,6 +72,7 @@ fn hack_loop() {
         let config = CONFIG.get_ref();
         let mut state = STATE.get_mut();
 
+        let start = Instant::now();
         update_location_history(Instant::now(), config.seconds_pred_history, &game_info, &mut state.aimbot_context.location_history);
 
         aimbot::aimbot(&config, &game_info, &mut state.aimbot_context);
@@ -86,23 +91,58 @@ fn update_location_history(update_time: Instant, max_history: f32, game_info: &G
 }
 
 /// Returns a sender for new game updates
-pub fn start_overlay_thread(window: Window) {
+pub fn start_overlay_thread() {
     spawn(move || {
-        let mut imgui = Imgui::from_window(
-            window,
-            ImguiConfig { toggle_menu_key: Some(VK_INSERT), align_to_pixel: true },
-        ).unwrap();
+        let cod_window = find_cod_window(get_process_info().pid).expect("Could not find cod window");
 
-        let mut config = CONFIG.get_clone();
-        imgui.main_loop(|ui, ctx| {
-            use memlib::overlay::imgui::*;
+        let mut window = OverlayWindow::create().unwrap();
+        window.controller.hide_screenshots(true);
+        window.controller.set_target(Some(cod_window));
 
-            config = CONFIG.get_clone();
+        let mut ctx = imgui::Context::create();
+        window_overlay::imgui::themes::main_theme(&mut ctx);
+        window_overlay::imgui::themes::dark_blue(&mut ctx);
+        let mut imgui = Imgui::new(window, ctx);
 
-            Window::new(im_str!("test"))
-                .build(&ui, || {
-                    ui.draw_gui(&mut config);
-                });
+        let event_listener = winutil::InputEventListener::new();
+
+        imgui.run(move |ui, state, ctx| {
+            use imgui::*;
+
+            let mut config = CONFIG.get_mut().clone();
+
+            ImguiOverlay::build(&ui, &ctx, true, |overlay| {
+                if config.show_fps {
+                    overlay.draw_text([5.0, 5.0], &format!("FPS: {}", ui.io().framerate as i32), TextOptions::default()
+                        .font(types::Font::Pixel)
+                        .style(types::TextStyle::Outlined))
+                }
+
+                let game_info = match get_game_info() {
+                    Ok(n) => n,
+                    Err(e) => {
+                        return;
+                    }
+                };
+
+                let cheat_state = STATE.get_clone();
+                esp::esp(&game_info, overlay, &config, &cheat_state.aimbot_context);
+                closest_player::closest_player(&game_info, &config, overlay);
+            });
+
+            for e in &event_listener {
+                if let Event::KeyDown(key) = e {
+                    if key == VK_INSERT {
+                        ctx.ui_open = !ctx.ui_open;
+                    }
+                }
+            }
+
+            if !ctx.ui_open {
+                return;
+            }
+
+            crate::gui::gui(ui, state, ctx, &mut config);
 
             // check if config was modified
             if !CONFIG.get_ref().eq(&config) {
@@ -112,19 +152,6 @@ pub fn start_overlay_thread(window: Window) {
 
                 CONFIG.set(config.clone());
             }
-        }, |overlay| {
-            let game_info = match get_game_info() {
-                Ok(n) => n,
-                Err(e) => {
-                    return;
-                }
-            };
-
-            let config = CONFIG.get_ref();
-            let cheat_state = STATE.get_clone();
-            esp::esp(&game_info, overlay, &config, &cheat_state.aimbot_context);
-            closest_player::closest_player(&game_info, &config, overlay);
-            // dbg!(1.0 / ((start.elapsed().as_micros() as f64) * 1_000_000.0));
         });
     });
 }

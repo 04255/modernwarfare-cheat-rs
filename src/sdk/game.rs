@@ -61,10 +61,12 @@ pub fn init(handle: Handle) -> Result<()> {
 }
 
 pub fn get_game_info() -> Result<GameInfo> {
+    let now = Instant::now();
     let local_view_angles = internal::get_camera_angles().ok_or_else(|| anyhow!("Could not get local view angles"))?;
     let local_position = internal::get_camera_position().ok_or_else(|| anyhow!("Could not get camera pos"))?;
     let players = internal::get_players().ok_or_else(|| anyhow!("Could not get players"))?;
     let local_index = internal::find_local_index(&players, &local_position).ok_or_else(|| anyhow!("Could not get local index"))?;
+    dbg!(now.elapsed());
 
     Ok(GameInfo {
         local_view_angles,
@@ -80,7 +82,10 @@ pub fn get_fov() -> f32 {
 }
 
 pub fn world_to_screen(world_pos: &Vector3) -> Option<Vector2> {
-    let refdef = globals::REFDEF.get().expect("world_to_screen was called without refdef").read();
+    let refdef = globals::REFDEF.get().or_else(|| {
+        error!("world_to_screen was called without refdef");
+        None
+    })?.read();
     w2s::world_to_screen(
         &world_pos,
         internal::get_camera_position().expect("get_camera_position failed calling world_to_screen"),
