@@ -1,4 +1,5 @@
 # modernwarfare-cheat-rs
+## Please stop messaging me asking me how to compile this. Some of the dependencies are private and I only released this so people could see the core cheat logic.
 A Cheat for Call of Duty: Modern Warfare written in Rust using my memlib-rs library
 
 I have stopped working on this project. This was made mostly for fun and to learn Rust.
